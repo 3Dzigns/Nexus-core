@@ -76,3 +76,34 @@ Rollback on failure:
 This document is versioned.
 - Any change requires a version bump
 - Dependency changes MUST update tests and validation logic
+
+---
+
+## 5. Source Citations (Git Memory Compliance)
+
+Dependencies in this document are derived from the following authoritative sources:
+
+| Step | Dependency | Source Document | Section |
+|------|------------|-----------------|---------|
+| 1 | Source Discovery | INGESTION_ARCHITECTURE_v1.0.md | Section 5 |
+| 2 | Admin Approval | INGESTION_ARCHITECTURE_v1.0.md | Section 6 |
+| 3 | Dual Extraction | INGESTION_ARCHITECTURE_v1.0.md | Section 7 |
+| 4 | Normalization | INGESTION_ARCHITECTURE_v1.0.md | Section 8 |
+| 5 | Metadata Enrichment | INGESTION_ARCHITECTURE_v1.0.md | Section 9 |
+| 6 | Chunking | INGESTION_ARCHITECTURE_v1.0.md | Section 10 |
+| 7 | Embedding & Storage | INGESTION_ARCHITECTURE_v1.0.md | Section 11 |
+| 8 | Indexing | INGESTION_ARCHITECTURE_v1.0.md | Section 11.4-11.5 |
+| 9 | Validation | INGESTION_ARCHITECTURE_v1.0.md | Section 13 |
+| 10 | Deactivation | INGESTION_ARCHITECTURE_v1.0.md | Section 12 |
+
+### Additional Source References
+
+**Rollback behavior:**
+- INGESTION_ARCHITECTURE_v1.0.md Section 17
+
+**Governance state machine:**
+- INGESTION_ARCHITECTURE_v1.0.md Section 4
+- GOVERNANCE_FLOW_v1.0.md (full state transition rules)
+
+**Initial commit establishing dependencies:**
+- `895e6d9` - Initial commit: Nexus Core MVP1 specification documents
