@@ -1,0 +1,237 @@
+# Nexus Core MVP1 Docker Compose Configuration
+# Reference: DEPLOYMENT_v1.0.md
+# Task ID: PHASE0-INIT-003
+#
+# Startup Order (enforced via depends_on + service_healthy):
+# 1. nexus_db (Postgres + pgvector)
+# 2. nexus_api (FastAPI)
+# 3. nexus_ingestion_worker
+# 4. nexus_docling_worker
+# 5. nexus_unstructured_worker
+# 6. nexus_validator
+# 7. nexus_ui (deferred for Phase 0)
+# 8. nexus_admin_ui (deferred for Phase 0)
+
+services:
+  # ==========================================================================
+  # Service 1: Database (Postgres + pgvector)
+  # ==========================================================================
+  nexus_db:
+    image: pgvector/pgvector:pg14
+    container_name: nexus_db
+    environment:
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: nexus
+      POSTGRES_DB: nexus_core
+    volumes:
+      - nexus_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexus -d nexus_core"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - nexus_network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Service 2: API (FastAPI)
+  # ==========================================================================
+  nexus_api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: nexus_api
+    environment:
+      DATABASE_URL: postgresql+asyncpg://nexus:nexus@nexus_db:5432/nexus_core
+      TRANSFER_STATION_PATH: /transfer_station
+      JWT_ISSUER: ${JWT_ISSUER:-nexus-core-api}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-}
+      DOCLING_VERSION: ${DOCLING_VERSION:-docling/1.0.0}
+      UNSTRUCTURED_VERSION: ${UNSTRUCTURED_VERSION:-unstructured/0.10.0}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-384}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ${TRANSFER_STATION_PATH:-E:\Transfer_Station}:/transfer_station
+    ports:
+      - "8000:8000"
+    depends_on:
+      nexus_db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - nexus_network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Service 3: Ingestion Worker
+  # ==========================================================================
+  nexus_ingestion_worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    container_name: nexus_ingestion_worker
+    environment:
+      DATABASE_URL: postgresql+asyncpg://nexus:nexus@nexus_db:5432/nexus_core
+      TRANSFER_STATION_PATH: /transfer_station
+      INGESTION_WORKER_POLL_INTERVAL: ${INGESTION_WORKER_POLL_INTERVAL:-60}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ${TRANSFER_STATION_PATH:-E:\Transfer_Station}:/transfer_station
+    depends_on:
+      nexus_api:
+        condition: service_healthy
+      nexus_db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - nexus_network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Service 4: Docling Worker
+  # ==========================================================================
+  nexus_docling_worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+      args:
+        WORKER_TYPE: docling
+    container_name: nexus_docling_worker
+    environment:
+      DATABASE_URL: postgresql+asyncpg://nexus:nexus@nexus_db:5432/nexus_core
+      TRANSFER_STATION_PATH: /transfer_station
+      DOCLING_VERSION: ${DOCLING_VERSION:-docling/1.0.0}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ${TRANSFER_STATION_PATH:-E:\Transfer_Station}:/transfer_station
+    depends_on:
+      nexus_api:
+        condition: service_healthy
+      nexus_db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - nexus_network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Service 5: Unstructured Worker
+  # ==========================================================================
+  nexus_unstructured_worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+      args:
+        WORKER_TYPE: unstructured
+    container_name: nexus_unstructured_worker
+    environment:
+      DATABASE_URL: postgresql+asyncpg://nexus:nexus@nexus_db:5432/nexus_core
+      TRANSFER_STATION_PATH: /transfer_station
+      UNSTRUCTURED_VERSION: ${UNSTRUCTURED_VERSION:-unstructured/0.10.0}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ${TRANSFER_STATION_PATH:-E:\Transfer_Station}:/transfer_station
+    depends_on:
+      nexus_api:
+        condition: service_healthy
+      nexus_db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - nexus_network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Service 6: Validator
+  # ==========================================================================
+  nexus_validator:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.validator
+    container_name: nexus_validator
+    environment:
+      DATABASE_URL: postgresql+asyncpg://nexus:nexus@nexus_db:5432/nexus_core
+      TRANSFER_STATION_PATH: /transfer_station
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ${TRANSFER_STATION_PATH:-E:\Transfer_Station}:/transfer_station
+    depends_on:
+      nexus_api:
+        condition: service_healthy
+      nexus_db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - nexus_network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Service 7: UI (Deferred for Phase 0)
+  # ==========================================================================
+  # nexus_ui:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/Dockerfile.ui
+  #   container_name: nexus_ui
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     nexus_api:
+  #       condition: service_healthy
+  #   networks:
+  #     - nexus_network
+
+  # ==========================================================================
+  # Service 8: Admin UI (Deferred for Phase 0)
+  # ==========================================================================
+  # nexus_admin_ui:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/Dockerfile.admin_ui
+  #   container_name: nexus_admin_ui
+  #   ports:
+  #     - "3001:3001"
+  #   depends_on:
+  #     nexus_api:
+  #       condition: service_healthy
+  #   networks:
+  #     - nexus_network
+
+networks:
+  nexus_network:
+    driver: bridge
+
+volumes:
+  nexus_db_data:
+    driver: local

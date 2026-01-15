@@ -1,0 +1,41 @@
+# Nexus Core Validator Dockerfile
+# Reference: DEPLOYMENT_v1.0.md, TOOL_VERSIONS_v1.0.md
+# Task ID: PHASE0-INIT-003
+#
+# Base: Python 3.11 (TOOL_VERSIONS_v1.0.md)
+
+FROM python:3.11-slim AS base
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Install Python dependencies
+COPY pyproject.toml ./
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir .
+
+# Copy application code
+COPY src/ ./src/
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash nexus && \
+    chown -R nexus:nexus /app
+
+USER nexus
+
+# Expose health check port
+EXPOSE 8004
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 --start-period=30s \
+    CMD curl -f http://localhost:8004/health || exit 1
+
+# Run validator (placeholder - actual entrypoint defined in Phase 4+)
+CMD ["python", "-c", "print('Validator placeholder - implementation in Phase 4+'); import time; time.sleep(86400)"]
