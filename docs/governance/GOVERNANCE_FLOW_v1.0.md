@@ -199,3 +199,45 @@ The governance model for Nexus Core MVP1 is considered complete when:
 
 This document defines the **authoritative governance flow contract** for MVP1.
 
+---
+
+## 11. Source Verification (Git Memory Compliance)
+
+### Verification Against Authoritative Source
+
+This document has been verified against INGESTION_ARCHITECTURE_v1.0.md Section 4 (Governance Model).
+
+**States Verification:**
+
+| State | INGESTION_ARCHITECTURE Section 4.3 | Match |
+|-------|-------------------------------------|-------|
+| DISCOVERED | Listed | ✅ |
+| PENDING_APPROVAL | Listed | ✅ |
+| DUPLICATE_DETECTED | Listed | ✅ |
+| APPROVED | Listed | ✅ |
+| DENIED | Listed | ✅ |
+| INGESTING | Listed | ✅ |
+| INGESTED | Listed | ✅ |
+| ERROR | Listed | ✅ |
+| DEACTIVATED | Listed | ✅ |
+
+**Transitions Verification:**
+
+All transitions in Section 4 match INGESTION_ARCHITECTURE_v1.0.md Section 4.3 (Allowed transitions summary).
+
+No discrepancies found. No implicit transitions exist.
+
+### Source Citations
+
+| Section | Source Document | Reference |
+|---------|-----------------|-----------|
+| States (Section 3) | INGESTION_ARCHITECTURE_v1.0.md | Section 4.3 |
+| Transitions (Section 4) | INGESTION_ARCHITECTURE_v1.0.md | Section 4.3 |
+| Duplicate Detection | INGESTION_ARCHITECTURE_v1.0.md | Section 4.4 |
+| Deactivation | INGESTION_ARCHITECTURE_v1.0.md | Section 5.3, 12 |
+| Enforcement Rules | INGESTION_ARCHITECTURE_v1.0.md | Section 4.1, 4.2 |
+
+### Governance-Related Commits
+
+- `895e6d9` - Initial commit: Nexus Core MVP1 specification documents
+
