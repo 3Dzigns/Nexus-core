@@ -260,3 +260,56 @@ The phase map for Nexus Core MVP1 is accepted when:
 
 This document defines the **authoritative phase map** for MVP1.
 
+---
+
+## 7. Implementation Agent Guidance
+
+This section explains how implementation agents should use this document.
+
+### 7.1 Pre-Task Reference
+
+Before starting any implementation task, agents MUST:
+
+1. Identify the target phase from the task description
+2. Look up the phase in this document (Section 3)
+3. Note all governing documents for the phase
+4. Note all FR IDs that must be satisfied
+5. Note all test cases that must pass
+
+### 7.2 Cross-Reference Protocol
+
+During implementation:
+
+- Reference governing documents for behavioral specifications
+- Validate implementation against listed FR IDs
+- Verify test cases are implementable with the chosen approach
+- Do NOT implement behavior not covered by a governing document
+
+### 7.3 Post-Task Verification
+
+After completing implementation:
+
+- Confirm all phase FRs are addressed
+- Confirm mapped test cases can execute
+- Do NOT proceed to next phase until current phase acceptance criteria are met
+
+### 7.4 Usage Example
+
+```
+Task: Implement source discovery
+
+1. Look up: Phase 1 — Source Discovery & Approval
+2. Governing docs: INGESTION_ARCHITECTURE_v1.0.md, GOVERNANCE_FLOW_v1.0.md
+3. Must satisfy: FR-001 through FR-007
+4. Must pass: T-ING-001, T-ING-002, T-ING-003
+5. Implementation proceeds only after reading all governing docs
+6. Phase 1 is complete when all tests pass and acceptance criteria met
+```
+
+### 7.5 Prohibited Behaviors
+
+- Skipping phases or implementing out of order
+- Ignoring governing documents
+- Implementing features not mapped to FRs
+- Proceeding without passing phase tests
+
