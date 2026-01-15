@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(test:*)",
+      "Bash(claude mcp remove:*)",
+      "Bash(ls -la \"E:\\\\Nexus_Core\\\\docs\"\" 2>/dev/null || dir /B \"E:Nexus_Coredocs \")",
+      "Bash(ls -la \"E:\\\\Nexus_Core\\\\.claude\"\" 2>/dev/null || dir /B \"E:Nexus_Core.claude \")",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial commit: Nexus Core MVP1 specification documents\n\nComplete specification suite for TTRPG knowledge ingestion and AI query system:\n- Architecture documents \\(system, ingestion, UI wireframes\\)\n- Requirements and acceptance criteria\n- Database schema with pgvector support\n- API contracts \\(OpenAPI, JWT\\)\n- Governance flow and artifact contracts\n- Test plans, cases, and validation strategy\n- Implementation agent prompts\n- Phase maps and dependency chains\n\nNo implementation code - planning and specification phase complete.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}
