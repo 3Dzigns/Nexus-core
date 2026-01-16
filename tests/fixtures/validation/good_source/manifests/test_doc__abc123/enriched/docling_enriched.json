@@ -1,0 +1,20 @@
+{
+  "doc_id": "test_doc__abc123",
+  "source_sha256": "abc123def456",
+  "tool_name": "docling",
+  "tool_version": "2.0.0",
+  "run_id": "run_001",
+  "manifest_type": "enriched",
+  "timestamp": "2026-01-16T10:15:00Z",
+  "elements": [
+    {
+      "element_id": "elem_001",
+      "type": "text",
+      "content": "Enriched content from docling",
+      "metadata": {
+        "section": "Introduction",
+        "page": 1
+      }
+    }
+  ]
+}

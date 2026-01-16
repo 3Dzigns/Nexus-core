@@ -1,0 +1,16 @@
+{
+  "doc_id": "test_doc__abc123",
+  "source_sha256": "abc123def456",
+  "tool_name": "unstructured",
+  "tool_version": "0.16.0",
+  "run_id": "run_002",
+  "manifest_type": "normalized",
+  "timestamp": "2026-01-16T10:11:00Z",
+  "elements": [
+    {
+      "element_id": "elem_002",
+      "type": "text",
+      "content": "Normalized content from unstructured"
+    }
+  ]
+}
