@@ -154,14 +154,30 @@ All foreign keys MUST implement `ON DELETE CASCADE`:
 
 ### Governance State Validation
 
-Implement validation logic that enforces allowed state transitions:
+Implement validation logic that enforces allowed state transitions per GOVERNANCE_FLOW_v1.0.md:
 
+**Discovery and Approval:**
+- *(none)* → `DISCOVERED`
 - `DISCOVERED` → `PENDING_APPROVAL`
-- `PENDING_APPROVAL` → `DUPLICATE_DETECTED`
-- `DUPLICATE_DETECTED` → `APPROVED` or `DENIED`
+- `DISCOVERED` → `DUPLICATE_DETECTED`
+- `PENDING_APPROVAL` → `APPROVED`
+- `PENDING_APPROVAL` → `DENIED`
+- `DENIED` → `PENDING_APPROVAL`
+- `DUPLICATE_DETECTED` → `PENDING_APPROVAL`
+- `DUPLICATE_DETECTED` → `APPROVED`
+
+**Ingestion Execution:**
 - `APPROVED` → `INGESTING`
-- `INGESTING` → `INGESTED` or `ERROR`
+- `INGESTING` → `INGESTED`
+- `INGESTING` → `ERROR`
+
+**Admin-Gated Retries:**
+- `ERROR` → `PENDING_APPROVAL`
+
+**Deactivation:**
 - `INGESTED` → `DEACTIVATED`
+- `ERROR` → `DEACTIVATED`
+- `DENIED` → `DEACTIVATED`
 
 Every transition MUST:
 - Use optimistic locking (`state_version` field)
