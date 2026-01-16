@@ -24,12 +24,17 @@ from nexus_core.validation.exceptions import (
     ValidationPreconditionError,
     ValidationReportError,
 )
+from nexus_core.validation.validator import ValidationResult, Validator
 
 __all__ = [
+    # Exceptions
     "ValidationError",
     "ValidationPreconditionError",
     "ValidationCheckError",
     "ValidationReportError",
     "ArtifactNotFoundError",
     "GovernanceIntegrityError",
+    # Core
+    "Validator",
+    "ValidationResult",
 ]
