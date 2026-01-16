@@ -60,6 +60,8 @@ You MUST implement ingestion **in the same order as the planning tasks**:
 6. ING-PLAN-005 - Validation hooks
 7. ING-PLAN-006 - Cleanup support
 
+Note: ING-PLAN-007 (Final Planning Review & Risk Register) is a planning-only task with no code implementation requirements.
+
 You may not implement later phases until earlier phases pass their verification gates.
 
 ---
