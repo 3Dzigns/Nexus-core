@@ -309,3 +309,41 @@ The artifact contract for Nexus Core MVP1 is accepted when:
 
 This document defines the **authoritative artifact contract** for MVP1.
 
+---
+
+## 13. Design Rationale (Git Memory Compliance)
+
+### Why Artifacts Are Preserved Separately
+
+Docling and Unstructured outputs are preserved independently (not merged) for the following reasons:
+
+1. **Tool Evolution**: Extractors improve over time; preserving raw outputs enables re-normalization without re-extraction
+2. **Comparative Analysis**: Dual outputs enable quality comparison and tool selection validation
+3. **Determinism Verification**: Independent artifacts prove each tool's reproducibility
+4. **Failure Isolation**: Tool-specific issues are traceable to specific artifacts
+5. **MVP1 Scope**: Canonical merge is deferred to MVP2+ when merge strategies can be properly evaluated
+6. **Auditability**: Every transformation stage is observable and verifiable
+
+This decision is documented in:
+- INGESTION_ARCHITECTURE_v1.0.md Section 7.1 (Dual extraction required behavior)
+- INGESTION_ARCHITECTURE_v1.0.md Section 10.1 (Dual chunk sets)
+
+### Source Citations
+
+| Section | Source Document | Reference |
+|---------|-----------------|-----------|
+| Directory Structure (Section 3) | INGESTION_ARCHITECTURE_v1.0.md | Section 3 |
+| Document Identity (Section 4) | INGESTION_ARCHITECTURE_v1.0.md | Section 3.1 |
+| Raw Manifests (Section 5.2) | INGESTION_ARCHITECTURE_v1.0.md | Section 7.2 |
+| Normalized Manifests (Section 5.3) | INGESTION_ARCHITECTURE_v1.0.md | Section 8.2 |
+| Enriched Manifests (Section 5.4) | INGESTION_ARCHITECTURE_v1.0.md | Section 9.2 |
+| Chunk Artifacts (Section 5.5) | INGESTION_ARCHITECTURE_v1.0.md | Section 10.2 |
+| Validation Reports (Section 5.7) | INGESTION_ARCHITECTURE_v1.0.md | Section 13.4 |
+| Dual-Manifest Rule (Section 6) | INGESTION_ARCHITECTURE_v1.0.md | Section 7.1 |
+| Tool Provenance (Section 7) | INGESTION_ARCHITECTURE_v1.0.md | Section 7.3 |
+| Deactivation Semantics (Section 8) | INGESTION_ARCHITECTURE_v1.0.md | Section 12.2 |
+
+### Artifact-Related Commits
+
+- `895e6d9` - Initial commit: Nexus Core MVP1 specification documents
+
