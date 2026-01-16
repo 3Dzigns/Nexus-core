@@ -147,16 +147,12 @@ Validation MUST confirm:
   - system_tag
 - Chunk identifiers are unique per source
 - Chunk IDs follow the required format
-- Chunk text length is within required bounds
 
 **Failure Condition:**
 - Missing required chunk metadata
 - Duplicate chunk IDs or invalid chunk ID format
-- Chunk text exceeds the maximum allowed size
 
-**Chunk Size Rule (MVP1):**
-- Maximum chunk text length: 8,000 characters
-- If any chunk exceeds the limit, validation FAILS
+**Note:** MVP1 does not enforce a maximum chunk text length. Chunk sizes are determined by the chunking algorithm per INGESTION_ARCHITECTURE_v1.0.md Section 10.
 
 ---
 
