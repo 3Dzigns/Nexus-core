@@ -298,3 +298,46 @@ The validation plan for Nexus Core MVP1 is accepted when:
 
 This document defines the **authoritative validation contract** for MVP1.
 
+---
+
+## 12. Validation Philosophy (Git Memory Compliance)
+
+### Core Philosophy
+
+Validation in Nexus Core MVP1 follows a **proof-of-correctness** model:
+
+1. **Evidence-Based**: All checks rely on observable artifacts and database state, not in-memory promises
+2. **All-or-Nothing**: Partial success is rejected; every check must pass for certification
+3. **Non-Interference**: Validation never modifies ingestion state or fixes errors
+4. **Deterministic**: Same source + same artifacts → same validation result
+5. **Hard Gate**: Validation is the **only** path to `INGESTED` status
+6. **Audit Trail**: Every validation run produces immutable reports
+
+### Why This Approach
+
+This philosophy ensures:
+- **Reproducibility**: Failed ingestion can be debugged from reports alone
+- **Trust**: No component can bypass validation
+- **Simplicity**: Clear binary outcome (PASS/FAIL)
+- **Accountability**: Every certification is traceable
+
+### Source Citations
+
+| Section | Source Document | Reference |
+|---------|-----------------|-----------|
+| Preconditions (Section 3) | INGESTION_ARCHITECTURE_v1.0.md | Section 13.2 |
+| Governance Checks (Section 5.1) | GOVERNANCE_FLOW_v1.0.md | Sections 4, 7 |
+| Artifact Checks (Section 5.2) | ARTIFACT_CONTRACT_v1.0.md | Sections 3, 5 |
+| Provenance Checks (Section 5.3) | ARTIFACT_CONTRACT_v1.0.md | Section 7 |
+| Dual-Extractor Checks (Section 5.4) | ARTIFACT_CONTRACT_v1.0.md | Section 6 |
+| Chunk Checks (Section 5.5) | INGESTION_ARCHITECTURE_v1.0.md | Section 10.2 |
+| Storage Checks (Section 5.6) | INGESTION_ARCHITECTURE_v1.0.md | Section 11 |
+| Deactivation Checks (Section 5.8) | GOVERNANCE_FLOW_v1.0.md | Section 4.4 |
+| Reports (Section 7) | INGESTION_ARCHITECTURE_v1.0.md | Section 13.4 |
+| FR Mapping (Section 8) | REQUIREMENTS_v1.0.md | FR-023 to FR-026 |
+| Test Mapping (Section 8) | TEST_CASES_v1.0.md | T-ING-012, T-ING-013 |
+
+### Validation-Related Commits
+
+- `895e6d9` - Initial commit: Nexus Core MVP1 specification documents
+
