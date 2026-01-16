@@ -200,3 +200,49 @@ The cleanup strategy for Nexus Core MVP1 is accepted when:
 
 This document defines the **authoritative cleanup contract** for MVP1.
 
+---
+
+## 12. Safety Rationale (Git Memory Compliance)
+
+### Why Cleanup is Mandatory
+
+Cleanup is mandatory for MVP1 because:
+
+1. **Test Repeatability**: Tests must produce identical results across runs; leftover data causes false passes/fails
+2. **Container-Only Testing**: All tests run inside Docker per NFR-007; contaminated state invalidates subsequent tests
+3. **Determinism Verification**: Ingestion must be reproducible; orphaned data prevents verification
+4. **Safety Validation**: Production safety depends on test reliability; contaminated tests cannot prove correctness
+5. **Governance Integrity**: State machine must be testable from known states; residual data violates preconditions
+6. **No Synthetic Data**: Per NFR-008, all test data is real sources that must be cleaned to prevent confusion
+
+### Mandatory Nature
+
+Per TEST_PLAN_v1.0.md Section 5.2:
+> "Cleanup MUST restore the environment to a known clean state."
+
+This is not optional. Without cleanup:
+- Tests become non-deterministic
+- Validation results become unreliable
+- Production readiness cannot be certified
+
+### Source Citations
+
+| Section | Source Document | Reference |
+|---------|-----------------|-----------|
+| Purpose (Section 1) | TEST_PLAN_v1.0.md | Section 3.2 (Data Isolation) |
+| Cleanup Principles (Section 2) | TEST_PLAN_v1.0.md | Section 5.2 (Cleanup Procedure) |
+| Test Data Definition (Section 3) | ARTIFACT_CONTRACT_v1.0.md | Section 4 (Document Identity) |
+| Source File Removal (Section 4.1) | INGESTION_ARCHITECTURE_v1.0.md | Section 5 (Source Discovery) |
+| Artifact Removal (Section 4.2) | ARTIFACT_CONTRACT_v1.0.md | Section 3 (Directory Structure) |
+| Validation Report Removal (Section 4.3) | VALIDATION_PLAN_v1.0.md | Section 7 (Validation Reports) |
+| Database Cleanup (Section 4.4) | GOVERNANCE_FLOW_v1.0.md | Section 4.4 (Deactivation) |
+| Schema Preservation (Section 5) | TEST_PLAN_v1.0.md | Section 2.1 (Container-Only Testing) |
+| Verification Steps (Section 6) | TEST_PLAN_v1.0.md | Section 5.2 (Cleanup Verification) |
+| Execution Rules (Section 7) | TEST_PLAN_v1.0.md | Section 5.1 (Standard Test Run) |
+| Failure Handling (Section 8) | TEST_PLAN_v1.0.md | Section 3.2 (Data Isolation) |
+| NFR Mapping | REQUIREMENTS_v1.0.md | NFR-007, NFR-008, NFR-009 |
+
+### Cleanup-Related Commits
+
+- `895e6d9` - Initial commit: Nexus Core MVP1 specification documents
+
