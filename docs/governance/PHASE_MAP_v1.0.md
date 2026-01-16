@@ -111,7 +111,7 @@ No phases may be merged, reordered, or skipped.
 
 ---
 
-### Phase 3 — Normalization, Enrichment & Chunking
+### Phase 3 — Normalization, Enrichment, Chunking
 
 **Purpose:** Produce deterministic, content-aware chunks.
 
