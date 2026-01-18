@@ -26,6 +26,9 @@ from nexus_core.governance.state_machine import (
     IllegalTransitionError,
 )
 from nexus_core.ingestion.extraction_pipeline import ExtractionPipeline
+from nexus_core.ingestion.normalization_enrichment_chunking_pipeline import (
+    NormalizationEnrichmentChunkingPipeline,
+)
 from nexus_core.ingestion.queue import IngestionJob, get_ingestion_queue
 from nexus_core.models.source import GovernanceStatus, Source
 
@@ -199,23 +202,35 @@ class IngestionWorker:
         5. On success: proceed to Phase 3 (normalization)
         6. On failure: artifacts rolled back, status → ERROR
         """
-        pipeline = ExtractionPipeline(session, self.settings)
-        result = await pipeline.execute(source)
+        # Phase 2: Extraction
+        extraction_pipeline = ExtractionPipeline(session, self.settings)
+        extraction_result = await extraction_pipeline.execute(source)
 
-        if result.success:
-            logger.info(
-                f"Extraction pipeline succeeded: {source.doc_id} "
-                f"(manifests: {len(result.manifests_created)})"
-            )
-            # TODO: Phase 3 - Trigger normalization pipeline
-            logger.info(
-                f"[Phase 3 TODO] Would start normalization pipeline for: {source.doc_id}"
-            )
-        else:
+        if not extraction_result.success:
             logger.error(
-                f"Extraction pipeline failed: {source.doc_id} - {result.error_message}"
+                f"Extraction pipeline failed: {source.doc_id} - {extraction_result.error_message}"
             )
             # Pipeline already transitioned to ERROR state and rolled back artifacts
+            return
+
+        logger.info(
+            f"Extraction pipeline succeeded: {source.doc_id} "
+            f"(manifests: {len(extraction_result.manifests_created)})"
+        )
+
+        # Phase 3: Normalization, Enrichment, Chunking
+        phase3_pipeline = NormalizationEnrichmentChunkingPipeline(session, self.settings)
+        phase3_success = await phase3_pipeline.execute(source)
+
+        if phase3_success:
+            logger.info(f"Phase 3 pipeline succeeded: {source.doc_id}")
+            # TODO: Phase 4 - Trigger storage and indexing
+            logger.info(
+                f"[Phase 4 TODO] Would start storage pipeline for: {source.doc_id}"
+            )
+        else:
+            logger.error(f"Phase 3 pipeline failed: {source.doc_id}")
+            # TODO: Handle Phase 3 failure (transition to ERROR?)
 
 
 async def run_worker() -> None:

@@ -1,0 +1,105 @@
+# Enrichment Rules for Pathfinder System
+# Per INGESTION_ARCHITECTURE_v1.0.md Section 9.2
+#
+# These rules are deterministic and reproducible
+# NO per-chunk LLM calls in MVP1
+
+version: "1.0"
+system_id: "pathfinder"
+system_name: "Pathfinder RPG"
+
+# Content type classification rules
+# Applied via regex and keyword matching
+content_types:
+  - name: "statblock"
+    description: "Character or creature stat blocks"
+    patterns:
+      - regex: "^\\s*CR\\s+\\d+"  # Challenge Rating
+      - regex: "HP\\s+\\d+"        # Hit Points
+      - regex: "AC\\s+\\d+"        # Armor Class
+      - regex: "Init\\s+[+-]?\\d+"  # Initiative
+    keywords:
+      - "Melee"
+      - "Ranged"
+      - "Spell-Like Abilities"
+      - "Special Attacks"
+    min_matches: 2  # Need at least 2 indicators
+
+  - name: "spell"
+    description: "Spell descriptions"
+    patterns:
+      - regex: "^\\s*School\\s+"
+      - regex: "Level\\s+"
+      - regex: "Casting Time\\s+"
+      - regex: "Components\\s+"
+      - regex: "Duration\\s+"
+      - regex: "Saving Throw\\s+"
+      - regex: "Spell Resistance\\s+"
+    keywords:
+      - "transmutation"
+      - "evocation"
+      - "abjuration"
+      - "conjuration"
+      - "divination"
+      - "enchantment"
+      - "illusion"
+      - "necromancy"
+    min_matches: 3
+
+  - name: "feat"
+    description: "Feat descriptions"
+    patterns:
+      - regex: "^\\s*Prerequisites?:\\s+"
+      - regex: "^\\s*Benefit:\\s+"
+    keywords:
+      - "Prerequisites"
+      - "Benefit"
+      - "Normal"
+      - "Special"
+    min_matches: 2
+
+  - name: "rules_mechanics"
+    description: "Game rules and mechanics"
+    patterns:
+      - regex: "\\b(roll|check|bonus|penalty)\\b"
+      - regex: "\\bd\\d{1,2}\\b"  # Dice notation (d6, d20, etc.)
+    keywords:
+      - "modifier"
+      - "circumstance"
+      - "attack roll"
+      - "saving throw"
+      - "skill check"
+    min_matches: 2
+
+  - name: "flavor_text"
+    description: "Narrative or flavor text"
+    # No specific patterns - catch-all for story content
+    fallback: true
+
+  - name: "table"
+    description: "Game tables and charts"
+    patterns:
+      - regex: "^\\s*Table\\s+"
+    keywords:
+      - "Table"
+      - "Chart"
+    min_matches: 1
+
+# Section hierarchy keywords
+# Used for section path assignment
+section_keywords:
+  chapter:
+    - "Chapter"
+    - "Part"
+  section:
+    - "Section"
+    - "Subsection"
+  topic:
+    - "Topic"
+
+# System-specific tags
+# Applied to all content from this system
+system_tags:
+  - "pathfinder"
+  - "d20"
+  - "fantasy"
