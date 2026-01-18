@@ -102,12 +102,57 @@ class DiscoveryScanner:
         existing_source = result.scalar_one_or_none()
 
         if existing_source:
-            # File already discovered
-            logger.debug(
-                f"File already exists: {file_path.name} "
-                f"(doc_id: {existing_source.doc_id}, status: {existing_source.status.value})"
+            # Duplicate detected: SHA-256 already exists
+            # Create new source record with DUPLICATE_DETECTED status per FR-005
+            original_filename = file_path.name
+            doc_id = create_doc_id(original_filename, sha256)
+            current_path = str(file_path.absolute())
+
+            logger.warning(
+                f"Duplicate detected: {file_path.name} matches existing source "
+                f"{existing_source.doc_id} (SHA-256: {sha256[:16]}...)"
             )
-            return None
+
+            # Create Source record with DUPLICATE_DETECTED status
+            source = Source(
+                doc_id=doc_id,
+                source_sha256=sha256,
+                original_filename=original_filename,
+                current_path=current_path,
+                status=GovernanceStatus.DUPLICATE_DETECTED,
+                state_version=1,
+                owner_user_id="admin",  # Placeholder until admin context implemented
+            )
+
+            self.session.add(source)
+
+            # Create governance event for duplicate detection
+            event = GovernanceEvent(
+                doc_id=doc_id,
+                from_status=None,
+                to_status=GovernanceStatus.DUPLICATE_DETECTED.value,
+                event_type=EventType.STATUS_CHANGE,
+                triggered_by="discovery_scanner",
+                metadata_json={
+                    "original_filename": original_filename,
+                    "file_size_bytes": file_path.stat().st_size,
+                    "current_path": current_path,
+                    "duplicate_of_doc_id": existing_source.doc_id,
+                    "duplicate_of_status": existing_source.status.value,
+                },
+            )
+
+            self.session.add(event)
+
+            # Commit transaction
+            await self.session.commit()
+
+            logger.info(
+                f"Duplicate source recorded: {original_filename} "
+                f"(doc_id: {doc_id}, duplicate_of: {existing_source.doc_id})"
+            )
+
+            return doc_id
 
         # Create new source record
         original_filename = file_path.name

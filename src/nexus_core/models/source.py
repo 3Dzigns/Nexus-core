@@ -120,7 +120,10 @@ class Source(Base):
 
     # Primary key: doc_id format is <original_filename>__<sha256>
     doc_id: Mapped[str] = mapped_column(String(120), primary_key=True)
-    source_sha256: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    # Note: source_sha256 is NOT unique to allow duplicate detection workflow per FR-005
+    # Multiple files with same content (SHA-256) but different filenames can exist
+    # Governance status determines which duplicates are active
+    source_sha256: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     original_filename: Mapped[str] = mapped_column(Text, nullable=False)
     current_path: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[GovernanceStatus] = mapped_column(
