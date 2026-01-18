@@ -24,6 +24,7 @@ from nexus_core.governance.state_machine import (
     IllegalTransitionError,
     OptimisticLockError,
 )
+from nexus_core.ingestion.queue import enqueue_ingestion_job
 from nexus_core.models.source import (
     DuplicateDecision,
     DuplicateDecisionType,
@@ -144,6 +145,17 @@ async def approve_source(
         )
 
         await session.commit()
+
+        # Enqueue ingestion job for worker processing
+        await enqueue_ingestion_job(
+            doc_id=source.doc_id,
+            source_sha256=source.source_sha256,
+            original_filename=source.original_filename,
+            current_path=source.current_path,
+            system_id=source.system_id,
+            game_id=source.game_id,
+            owner_user_id=source.owner_user_id,
+        )
 
         logger.info(
             f"Source approved: {doc_id} by {request.admin_user_id} "
@@ -540,6 +552,18 @@ async def make_duplicate_decision(
         session.add(duplicate_decision)
 
         await session.commit()
+
+        # If ALLOW_SEPARATE_INSTANCE, enqueue ingestion job
+        if request.decision == DuplicateDecisionType.ALLOW_SEPARATE_INSTANCE:
+            await enqueue_ingestion_job(
+                doc_id=source.doc_id,
+                source_sha256=source.source_sha256,
+                original_filename=source.original_filename,
+                current_path=source.current_path,
+                system_id=source.system_id,
+                game_id=source.game_id,
+                owner_user_id=source.owner_user_id,
+            )
 
         logger.info(
             f"Duplicate decision recorded: {doc_id} → {request.decision.value} "
