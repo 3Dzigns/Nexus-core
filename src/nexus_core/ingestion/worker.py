@@ -25,6 +25,7 @@ from nexus_core.governance.state_machine import (
     GovernanceStateMachine,
     IllegalTransitionError,
 )
+from nexus_core.ingestion.extraction_pipeline import ExtractionPipeline
 from nexus_core.ingestion.queue import IngestionJob, get_ingestion_queue
 from nexus_core.models.source import GovernanceStatus, Source
 
@@ -171,13 +172,8 @@ class IngestionWorker:
 
             logger.info(f"Source transitioned to INGESTING: {doc_id}")
 
-            # TODO: Phase 2 - Trigger extraction pipeline
-            # await self._run_extraction_pipeline(session, source)
-
-            # For now, just log that we would start extraction
-            logger.info(
-                f"[Phase 2 TODO] Would start extraction pipeline for: {doc_id}"
-            )
+            # Trigger extraction pipeline (Phase 2)
+            await self._run_extraction_pipeline(session, source)
 
         except IllegalTransitionError as e:
             logger.warning(
@@ -191,23 +187,35 @@ class IngestionWorker:
     ) -> None:
         """Run extraction pipeline for a source.
 
-        This is a placeholder for Phase 2+ implementation.
-
         Args:
             session: Database session
             source: Source record to process
 
-        Phase 2 Implementation:
-        1. Create extraction job payload
-        2. Call Docling extractor
-        3. Call Unstructured extractor
-        4. Wait for both to complete
-        5. Verify artifacts created
-        6. Transition to next phase or ERROR on failure
+        Workflow:
+        1. Create extraction pipeline instance
+        2. Execute dual extraction (Docling + Unstructured)
+        3. Write artifacts to disk
+        4. Create manifest database records
+        5. On success: proceed to Phase 3 (normalization)
+        6. On failure: artifacts rolled back, status → ERROR
         """
-        # Placeholder for Phase 2
-        # Will be implemented in extraction_pipeline.py
-        raise NotImplementedError("Extraction pipeline not implemented (Phase 2)")
+        pipeline = ExtractionPipeline(session, self.settings)
+        result = await pipeline.execute(source)
+
+        if result.success:
+            logger.info(
+                f"Extraction pipeline succeeded: {source.doc_id} "
+                f"(manifests: {len(result.manifests_created)})"
+            )
+            # TODO: Phase 3 - Trigger normalization pipeline
+            logger.info(
+                f"[Phase 3 TODO] Would start normalization pipeline for: {source.doc_id}"
+            )
+        else:
+            logger.error(
+                f"Extraction pipeline failed: {source.doc_id} - {result.error_message}"
+            )
+            # Pipeline already transitioned to ERROR state and rolled back artifacts
 
 
 async def run_worker() -> None:
