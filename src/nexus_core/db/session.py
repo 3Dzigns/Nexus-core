@@ -1,6 +1,7 @@
 """Database session management for Nexus Core."""
 
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -35,6 +36,38 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         try:
             yield session
+        finally:
+            await session.close()
+
+
+@asynccontextmanager
+async def get_async_session_context() -> AsyncGenerator[AsyncSession, None]:
+    """Get an async database session as a context manager.
+
+    This function provides a session with automatic transaction management:
+    - Commits on successful completion
+    - Rolls back on exceptions
+    - Ensures proper session cleanup
+
+    Usage:
+        async with get_async_session_context() as session:
+            # Perform database operations
+            result = await session.execute(query)
+            # Automatically commits if no exceptions
+
+    Yields:
+        AsyncSession: Database session for async operations.
+
+    Raises:
+        Exception: Re-raises any exception after rolling back the transaction.
+    """
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
         finally:
             await session.close()
 
