@@ -30,7 +30,9 @@ from nexus_core.ingestion.normalization_enrichment_chunking_pipeline import (
     NormalizationEnrichmentChunkingPipeline,
 )
 from nexus_core.ingestion.queue import IngestionJob, get_ingestion_queue
+from nexus_core.ingestion.storage_pipeline import StoragePipeline
 from nexus_core.models.source import GovernanceStatus, Source
+from nexus_core.validation import Validator
 
 logger = logging.getLogger(__name__)
 
@@ -222,15 +224,38 @@ class IngestionWorker:
         phase3_pipeline = NormalizationEnrichmentChunkingPipeline(session, self.settings)
         phase3_success = await phase3_pipeline.execute(source)
 
-        if phase3_success:
-            logger.info(f"Phase 3 pipeline succeeded: {source.doc_id}")
-            # TODO: Phase 4 - Trigger storage and indexing
-            logger.info(
-                f"[Phase 4 TODO] Would start storage pipeline for: {source.doc_id}"
-            )
-        else:
+        if not phase3_success:
             logger.error(f"Phase 3 pipeline failed: {source.doc_id}")
-            # TODO: Handle Phase 3 failure (transition to ERROR?)
+            # TODO: Transition to ERROR state
+            return
+
+        logger.info(f"Phase 3 pipeline succeeded: {source.doc_id}")
+
+        # Phase 4: Storage and Indexing
+        storage_pipeline = StoragePipeline(session, self.settings)
+        storage_success = await storage_pipeline.execute(source)
+
+        if not storage_success:
+            logger.error(f"Storage pipeline failed: {source.doc_id}")
+            # TODO: Transition to ERROR state
+            return
+
+        logger.info(f"Storage pipeline succeeded: {source.doc_id}")
+
+        # Validation: Run validator to certify ingestion
+        logger.info(f"Running validation: {source.doc_id}")
+        validator = Validator(session=session, settings=self.settings)
+        validation_result = await validator.validate(source.doc_id)
+
+        if validation_result.status.value == "PASS":
+            logger.info(f"Validation passed: {source.doc_id}")
+            # Validator automatically transitions INGESTING → INGESTED on PASS
+        else:
+            logger.error(
+                f"Validation failed: {source.doc_id} "
+                f"({sum(1 for c in validation_result.checks if not c.passed)} checks failed)"
+            )
+            # Source remains in INGESTING state for retry/investigation
 
 
 async def run_worker() -> None:
