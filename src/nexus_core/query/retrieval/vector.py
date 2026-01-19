@@ -29,6 +29,8 @@ class VectorResult:
         tool_id: str,
         chunk_text: str,
         similarity: float,
+        system_id: Optional[str],
+        feedback_score: float,
     ):
         """Initialize vector result.
 
@@ -44,6 +46,8 @@ class VectorResult:
         self.tool_id = tool_id
         self.chunk_text = chunk_text
         self.similarity = similarity
+        self.system_id = system_id
+        self.feedback_score = feedback_score
 
     def __repr__(self) -> str:
         """String representation for logging."""
@@ -110,6 +114,8 @@ class VectorRetriever:
                 Chunk.doc_id,
                 Chunk.tool_id,
                 Chunk.chunk_text,
+                Chunk.system_id,
+                Chunk.feedback_score,
                 similarity_expr,
             )
             .select_from(Chunk)
@@ -135,6 +141,8 @@ class VectorRetriever:
                 tool_id=row.tool_id,
                 chunk_text=row.chunk_text,
                 similarity=row.similarity,
+                system_id=row.system_id,
+                feedback_score=float(row.feedback_score or 0.0),
             )
             for row in rows
         ]

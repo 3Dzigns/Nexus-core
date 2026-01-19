@@ -10,6 +10,8 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from nexus_core.config import get_settings
+from nexus_core.feedback.scoring import apply_feedback_adjustment
 from nexus_core.ingestion.embeddings.generator import EmbeddingGenerator
 from nexus_core.query.retrieval.keyword import KeywordResult, KeywordRetriever
 from nexus_core.query.retrieval.reranker import RankedResult, Reranker
@@ -46,6 +48,7 @@ class HybridRetriever:
         """
         self.db = db
         self.top_k = top_k
+        self.feedback_weight = get_settings().feedback_score_weight
 
         self.keyword_retriever = KeywordRetriever(db, top_k=top_k)
         self.vector_retriever = VectorRetriever(
@@ -89,11 +92,20 @@ class HybridRetriever:
                 ranked.doc_id = source.doc_id
                 ranked.tool_id = source.tool_id
                 ranked.chunk_text = source.chunk_text
+                ranked.system_id = source.system_id
+                ranked.feedback_score = source.feedback_score
             elif ranked.chunk_id in vector_map:
                 source = vector_map[ranked.chunk_id]
                 ranked.doc_id = source.doc_id
                 ranked.tool_id = source.tool_id
                 ranked.chunk_text = source.chunk_text
+                ranked.system_id = source.system_id
+                ranked.feedback_score = source.feedback_score
+
+        apply_feedback_adjustment(ranked_results, weight=self.feedback_weight)
+        ranked_results = sorted(
+            ranked_results, key=lambda x: x.combined_score, reverse=True
+        )
 
         # Limit to top_k
         final_results = ranked_results[: self.top_k]
@@ -134,13 +146,20 @@ class HybridRetriever:
                 tool_id=r.tool_id,
                 chunk_text=r.chunk_text,
                 combined_score=r.rank,  # Use rank as score
+                system_id=r.system_id,
+                feedback_score=r.feedback_score,
                 keyword_score=r.rank,
                 vector_score=None,
             )
             for r in keyword_results
         ]
 
-        return ranked_results
+        apply_feedback_adjustment(ranked_results, weight=self.feedback_weight)
+        ranked_results = sorted(
+            ranked_results, key=lambda x: x.combined_score, reverse=True
+        )
+
+        return ranked_results[: self.top_k]
 
     async def retrieve_vector_only(
         self, query_text: str, scope: QueryScope
@@ -168,10 +187,17 @@ class HybridRetriever:
                 tool_id=r.tool_id,
                 chunk_text=r.chunk_text,
                 combined_score=r.similarity,  # Use similarity as score
+                system_id=r.system_id,
+                feedback_score=r.feedback_score,
                 keyword_score=None,
                 vector_score=r.similarity,
             )
             for r in vector_results
         ]
 
-        return ranked_results
+        apply_feedback_adjustment(ranked_results, weight=self.feedback_weight)
+        ranked_results = sorted(
+            ranked_results, key=lambda x: x.combined_score, reverse=True
+        )
+
+        return ranked_results[: self.top_k]

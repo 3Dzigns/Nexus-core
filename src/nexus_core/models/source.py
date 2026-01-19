@@ -14,6 +14,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Float,
     Index,
     Integer,
     String,
@@ -276,6 +277,7 @@ class Chunk(Base):
     system_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    feedback_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     metadata_json: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

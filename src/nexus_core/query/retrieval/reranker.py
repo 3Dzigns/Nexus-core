@@ -24,6 +24,8 @@ class RankedResult:
         tool_id: str,
         chunk_text: str,
         combined_score: float,
+        system_id: Optional[str] = None,
+        feedback_score: Optional[float] = None,
         keyword_score: Optional[float] = None,
         vector_score: Optional[float] = None,
     ):
@@ -43,6 +45,8 @@ class RankedResult:
         self.tool_id = tool_id
         self.chunk_text = chunk_text
         self.combined_score = combined_score
+        self.system_id = system_id
+        self.feedback_score = feedback_score
         self.keyword_score = keyword_score
         self.vector_score = vector_score
 
@@ -197,6 +201,8 @@ class Reranker:
                     tool_id="",  # Populated by hybrid retriever
                     chunk_text="",  # Populated by hybrid retriever
                     combined_score=combined_score,
+                    system_id=None,
+                    feedback_score=None,
                     keyword_score=k_score if k_score > 0 else None,
                     vector_score=v_score if v_score > 0 else None,
                 )

@@ -28,6 +28,8 @@ class KeywordResult:
         tool_id: str,
         chunk_text: str,
         rank: float,
+        system_id: Optional[str],
+        feedback_score: float,
     ):
         """Initialize keyword result.
 
@@ -43,6 +45,8 @@ class KeywordResult:
         self.tool_id = tool_id
         self.chunk_text = chunk_text
         self.rank = rank
+        self.system_id = system_id
+        self.feedback_score = feedback_score
 
     def __repr__(self) -> str:
         """String representation for logging."""
@@ -93,6 +97,8 @@ class KeywordRetriever:
                 Chunk.doc_id,
                 Chunk.tool_id,
                 Chunk.chunk_text,
+                Chunk.system_id,
+                Chunk.feedback_score,
                 func.ts_rank(FTSIndex.tsv, tsquery).label("rank"),
             )
             .select_from(Chunk)
@@ -121,6 +127,8 @@ class KeywordRetriever:
                 tool_id=row.tool_id,
                 chunk_text=row.chunk_text,
                 rank=row.rank,
+                system_id=row.system_id,
+                feedback_score=float(row.feedback_score or 0.0),
             )
             for row in rows
         ]

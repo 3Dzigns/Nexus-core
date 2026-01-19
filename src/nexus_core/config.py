@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     retrieval_keyword_threshold: int = 10  # tokens for keyword vs vector
     retrieval_hybrid_alpha: float = 0.5    # keyword weight in hybrid mode
 
+    # Feedback
+    feedback_score_weight: float = 0.02
+    feedback_negative_threshold: int = 10
+
     # Logging
     log_level: str = "INFO"
 

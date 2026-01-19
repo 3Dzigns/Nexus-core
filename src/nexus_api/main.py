@@ -16,7 +16,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from nexus_api.routes import governance, health, query, validation
+from nexus_api.routes import feedback, governance, health, query, validation
 from nexus_core.config import get_settings
 from nexus_core.db import async_engine
 
@@ -73,6 +73,7 @@ app.include_router(health.router, tags=["Health"])
 app.include_router(governance.router, tags=["Governance"])
 app.include_router(validation.router, tags=["Validation"])
 app.include_router(query.router, tags=["Query"])
+app.include_router(feedback.router, tags=["Feedback"])
 
 
 # Exception handlers
