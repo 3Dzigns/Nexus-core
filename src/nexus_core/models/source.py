@@ -306,6 +306,7 @@ class Embedding(Base):
     """Vector embeddings per chunk.
 
     Reference: DATABASE_SCHEMA_v1.0.md Section 3.3
+    Updated to use OpenAI text-embedding-3-small (1536 dimensions)
     """
 
     __tablename__ = "embeddings"
@@ -313,7 +314,7 @@ class Embedding(Base):
     chunk_id: Mapped[str] = mapped_column(
         Text, ForeignKey("chunks.chunk_id", ondelete="CASCADE"), primary_key=True
     )
-    embedding: Mapped[list] = mapped_column(Vector(384), nullable=False)
+    embedding: Mapped[list] = mapped_column(Vector(1536), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

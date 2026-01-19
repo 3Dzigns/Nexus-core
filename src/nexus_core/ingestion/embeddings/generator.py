@@ -1,9 +1,9 @@
-"""Embedding generation using sentence-transformers.
+"""Embedding generation using OpenAI API.
 
 Per INGESTION_ARCHITECTURE_v1.0.md Section 11.2:
-- Use sentence-transformers/all-MiniLM-L6-v2 (384 dimensions)
+- Use OpenAI text-embedding-3-small (1536 dimensions)
 - Generate embeddings for chunk_text
-- Batch processing for efficiency
+- Batch processing for efficiency (up to 100 texts per request)
 - Retry logic (max 3 attempts)
 - Skip empty text chunks
 
@@ -13,42 +13,52 @@ Requirements: FR-021, TOOL_VERSIONS_v1.0.md
 import logging
 from typing import Optional
 
-import numpy as np
+from openai import AsyncOpenAI, OpenAIError
+
+from nexus_core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
 
 class EmbeddingGenerator:
-    """Generates vector embeddings for text chunks.
+    """Generates vector embeddings for text chunks using OpenAI API.
 
-    Uses sentence-transformers/all-MiniLM-L6-v2 model (384 dimensions).
+    Uses text-embedding-3-small model (1536 dimensions).
     """
 
     def __init__(
         self,
-        model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
-        batch_size: int = 32,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
+        batch_size: int = 100,
         max_retries: int = 3,
     ):
         """Initialize embedding generator.
 
         Args:
-            model_name: Sentence-transformers model identifier
-            batch_size: Batch size for processing
+            api_key: OpenAI API key (defaults to config)
+            model: OpenAI embedding model (defaults to config)
+            batch_size: Batch size for processing (max 100 for OpenAI)
             max_retries: Maximum retry attempts on failure
         """
-        self.model_name = model_name
-        self.batch_size = batch_size
-        self.max_retries = max_retries
-        self.dimensions = 384  # all-MiniLM-L6-v2 output dimensions
+        settings = get_settings()
 
-        # TODO: Load actual sentence-transformers model
-        # from sentence_transformers import SentenceTransformer
-        # self.model = SentenceTransformer(model_name)
+        self.api_key = api_key or settings.openai_api_key
+        if not self.api_key:
+            raise ValueError(
+                "OpenAI API key required. Set OPENAI_API_KEY environment variable."
+            )
+
+        self.model = model or settings.openai_embedding_model
+        self.batch_size = min(batch_size, 100)  # OpenAI API limit
+        self.max_retries = max_retries
+        self.dimensions = settings.embedding_dimensions
+
+        self.client = AsyncOpenAI(api_key=self.api_key)
 
         logger.info(
             f"Embedding generator initialized "
-            f"(model: {model_name}, dimensions: {self.dimensions})"
+            f"(model: {self.model}, dimensions: {self.dimensions})"
         )
 
     async def generate_embedding(self, text: str) -> Optional[list[float]]:
@@ -58,10 +68,10 @@ class EmbeddingGenerator:
             text: Text to embed
 
         Returns:
-            Embedding vector (384 dimensions), or None if text is empty
+            Embedding vector (1536 dimensions), or None if text is empty
 
         Raises:
-            Exception: If embedding generation fails after retries
+            OpenAIError: If embedding generation fails after retries
         """
         if not text or not text.strip():
             logger.warning("Empty text provided for embedding")
@@ -69,15 +79,22 @@ class EmbeddingGenerator:
 
         for attempt in range(self.max_retries):
             try:
-                # TODO: Replace with real sentence-transformers
-                # embedding = self.model.encode(text, convert_to_numpy=True)
-                # return embedding.tolist()
+                response = await self.client.embeddings.create(
+                    model=self.model,
+                    input=text,
+                    encoding_format="float"
+                )
 
-                # Placeholder: Generate random embedding
-                embedding = self._generate_placeholder_embedding(text)
+                embedding = response.data[0].embedding
+
+                logger.debug(
+                    f"Generated embedding for text (length: {len(text)}, "
+                    f"dimensions: {len(embedding)})"
+                )
+
                 return embedding
 
-            except Exception as e:
+            except OpenAIError as e:
                 logger.warning(
                     f"Embedding generation failed (attempt {attempt + 1}/{self.max_retries}): {e}"
                 )
@@ -97,58 +114,59 @@ class EmbeddingGenerator:
 
         Returns:
             List of embedding vectors (one per text)
+
+        Note:
+            OpenAI API supports up to 100 texts per request.
+            Larger batches are automatically split.
         """
         if not texts:
             return []
 
-        # Filter out empty texts
-        valid_texts = [(i, text) for i, text in enumerate(texts) if text and text.strip()]
-        if not valid_texts:
+        # Filter out empty texts but maintain original indices
+        text_map = {}  # index -> text
+        for i, text in enumerate(texts):
+            if text and text.strip():
+                text_map[i] = text
+
+        if not text_map:
             return [None] * len(texts)
 
-        # TODO: Replace with real batch encoding
-        # indices, text_list = zip(*valid_texts)
-        # embeddings = self.model.encode(
-        #     text_list,
-        #     batch_size=self.batch_size,
-        #     convert_to_numpy=True,
-        # )
+        # Process in batches of up to batch_size
+        indices = list(text_map.keys())
+        embeddings_map = {}  # index -> embedding
 
-        # Placeholder: Generate embeddings for valid texts
-        embeddings = [
-            self._generate_placeholder_embedding(text)
-            for _, text in valid_texts
-        ]
+        for batch_start in range(0, len(indices), self.batch_size):
+            batch_indices = indices[batch_start : batch_start + self.batch_size]
+            batch_texts = [text_map[i] for i in batch_indices]
+
+            for attempt in range(self.max_retries):
+                try:
+                    response = await self.client.embeddings.create(
+                        model=self.model,
+                        input=batch_texts,
+                        encoding_format="float"
+                    )
+
+                    # Map embeddings back to original indices
+                    for i, embedding_data in enumerate(response.data):
+                        original_idx = batch_indices[i]
+                        embeddings_map[original_idx] = embedding_data.embedding
+
+                    logger.debug(
+                        f"Generated {len(batch_texts)} embeddings "
+                        f"(batch {batch_start // self.batch_size + 1})"
+                    )
+
+                    break  # Success, exit retry loop
+
+                except OpenAIError as e:
+                    logger.warning(
+                        f"Batch embedding failed (attempt {attempt + 1}/{self.max_retries}): {e}"
+                    )
+                    if attempt == self.max_retries - 1:
+                        raise
 
         # Reconstruct full list with Nones for empty texts
-        result = [None] * len(texts)
-        for (idx, _), embedding in zip(valid_texts, embeddings):
-            result[idx] = embedding
+        result = [embeddings_map.get(i) for i in range(len(texts))]
 
         return result
-
-    def _generate_placeholder_embedding(self, text: str) -> list[float]:
-        """Generate placeholder embedding (for testing without sentence-transformers).
-
-        TODO: Phase 4 - Replace with real sentence-transformers model
-
-        Args:
-            text: Input text
-
-        Returns:
-            Random 384-dimensional vector
-        """
-        # Use text hash as seed for reproducibility
-        seed = hash(text) % (2**32)
-        np.random.seed(seed)
-
-        # Generate random unit vector
-        vector = np.random.randn(self.dimensions)
-        # Normalize to unit length (common for semantic search)
-        vector = vector / np.linalg.norm(vector)
-
-        logger.debug(
-            f"Generated placeholder embedding for text (length: {len(text)})"
-        )
-
-        return vector.tolist()

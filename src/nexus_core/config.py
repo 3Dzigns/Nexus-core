@@ -34,9 +34,19 @@ class Settings(BaseSettings):
     docling_version: str = "docling/1.0.0"
     unstructured_version: str = "unstructured/0.10.0"
 
+    # OpenAI Configuration
+    openai_api_key: Optional[str] = None
+    openai_embedding_model: str = "text-embedding-3-small"
+    openai_chat_model: str = "gpt-4"
+
     # Embeddings
-    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
-    embedding_dimensions: int = 384
+    embedding_model: str = "text-embedding-3-small"
+    embedding_dimensions: int = 1536  # text-embedding-3-small output dimensions
+
+    # Query & Retrieval
+    retrieval_top_k: int = 10
+    retrieval_keyword_threshold: int = 10  # tokens for keyword vs vector
+    retrieval_hybrid_alpha: float = 0.5    # keyword weight in hybrid mode
 
     # Logging
     log_level: str = "INFO"
