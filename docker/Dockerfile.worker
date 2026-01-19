@@ -26,7 +26,7 @@ WORKDIR /app
 # Install Python dependencies
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir ".[extraction]"
+    pip install --no-cache-dir ".[extraction,embeddings]"
 
 # Copy application code
 COPY src/ ./src/
@@ -48,5 +48,5 @@ EXPOSE 8001 8002 8003
 HEALTHCHECK --interval=10s --timeout=5s --retries=5 --start-period=60s \
     CMD curl -f http://localhost:${HEALTH_PORT:-8001}/health || exit 1
 
-# Run worker (placeholder - actual entrypoint defined in Phase 1+)
-CMD ["python", "-c", "print('Worker placeholder - implementation in Phase 1+'); import time; time.sleep(86400)"]
+# Run worker (ingestion pipeline worker)
+CMD ["python", "-m", "nexus_core.ingestion.worker"]
