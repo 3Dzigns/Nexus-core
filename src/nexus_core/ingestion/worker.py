@@ -25,6 +25,7 @@ from nexus_core.governance.state_machine import (
     GovernanceStateMachine,
     IllegalTransitionError,
 )
+from nexus_core.ingestion.deactivation import DeactivationService
 from nexus_core.ingestion.extraction_pipeline import ExtractionPipeline
 from nexus_core.ingestion.normalization_enrichment_chunking_pipeline import (
     NormalizationEnrichmentChunkingPipeline,
@@ -58,6 +59,7 @@ class IngestionWorker:
         self.poll_interval = settings.ingestion_worker_poll_interval
         self.queue = get_ingestion_queue()
         self._running = False
+        self._removal_check_counter = 0  # Counter for removal detection cycles
 
     async def start(self) -> None:
         """Start worker polling loop.
@@ -88,7 +90,8 @@ class IngestionWorker:
         1. Check queue for new jobs (with short timeout)
         2. Poll database for APPROVED sources
         3. Process each approved source
-        4. Sleep until next cycle
+        4. Check for removed sources (every cycle)
+        5. Sleep until next cycle
         """
         # Check queue first (optimization to reduce latency)
         job = await self.queue.dequeue(timeout=1.0)
@@ -100,6 +103,11 @@ class IngestionWorker:
         # Poll database for any APPROVED sources (fallback + handles restarts)
         async with get_async_session_context() as session:
             await self._poll_approved_sources(session)
+
+        # Check for removed sources (Phase 5: Removal Detection)
+        # Run every cycle to detect removals promptly
+        async with get_async_session_context() as session:
+            await self._check_for_removed_sources(session)
 
         # Sleep until next cycle
         await asyncio.sleep(self.poll_interval)
@@ -256,6 +264,59 @@ class IngestionWorker:
                 f"({sum(1 for c in validation_result.checks if not c.passed)} checks failed)"
             )
             # Source remains in INGESTING state for retry/investigation
+
+    async def _check_for_removed_sources(self, session: AsyncSession) -> None:
+        """Check for removed source files and soft deactivate.
+
+        Args:
+            session: Database session
+
+        Per INGESTION_ARCHITECTURE_v1.0.md Section 12:
+        - Poll /transfer_station/sources/ for file existence
+        - Detect missing files for sources with status INGESTED
+        - Transition to DEACTIVATED via deactivation service
+        - Deactivation service creates REMOVAL_REQUEST event and soft-disables chunks/embeddings
+
+        Requirements: FR-008, FR-009, FR-010
+        """
+        from pathlib import Path
+
+        # Get all INGESTED sources
+        deactivation_service = DeactivationService(session)
+        active_sources = await deactivation_service.get_active_sources()
+
+        if not active_sources:
+            return
+
+        sources_dir = Path(self.settings.transfer_station_path) / "sources"
+        removed_count = 0
+
+        for source in active_sources:
+            # Check if source file still exists
+            source_path = sources_dir / source.original_filename
+
+            if not source_path.exists():
+                logger.warning(
+                    f"Source file removed, deactivating: {source.doc_id} "
+                    f"(file: {source.original_filename})"
+                )
+
+                # Soft deactivate via deactivation service
+                success = await deactivation_service.deactivate_source(
+                    doc_id=source.doc_id,
+                    triggered_by="ingestion_worker",
+                    previous_status=source.status,
+                )
+
+                if success:
+                    removed_count += 1
+                else:
+                    logger.error(
+                        f"Failed to deactivate removed source: {source.doc_id}"
+                    )
+
+        if removed_count > 0:
+            logger.info(f"Deactivated {removed_count} removed source(s)")
 
 
 async def run_worker() -> None:
